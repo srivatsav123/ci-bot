@@ -7,16 +7,30 @@ import (
 	"github.com/Huawei-PaaS/ci-bot/handlers/assign"
 	"github.com/Huawei-PaaS/ci-bot/handlers/label"
 	"github.com/Huawei-PaaS/ci-bot/handlers/lgtm"
+	issue "github.com/Huawei-PaaS/ci-bot/handlers/merger"
 	"github.com/Huawei-PaaS/ci-bot/handlers/repository"
 	"github.com/Huawei-PaaS/ci-bot/handlers/retest"
-
 	"github.com/golang/glog"
 	"github.com/google/go-github/github"
 )
 
 type GithubIssue github.Issue
 
-func (s *Server) handleIssueEvent(body []byte) {
+func (s *Server) handleIssue(body []byte) {
+	glog.Info("Received an Issues Event")
+	var issueEvent github.IssuesEvent
+	err := json.Unmarshal(body, &issueEvent)
+	if err != nil {
+		glog.Errorf("Failed to unmarshal commentEvent: %v", err)
+	}
+	requestLinks := issueEvent.Issue.PullRequestLinks
+	if requestLinks == nil && *issueEvent.Action == "opened" && *issueEvent.Action != "reopened" {
+		err = issue.HandleIssue(issueEvent)
+		if err != nil {
+			glog.Errorf("Failed to handle issues %v", err)
+		}
+		glog.Errorf("Its an issue", err)
+	}
 	glog.Info("Received an Issue Event")
 }
 
@@ -29,6 +43,7 @@ func (s *Server) handleIssueCommentEvent(body []byte, client *github.Client, r r
 	if err != nil {
 		glog.Errorf("Failed to unmarshal commentEvent: %v", err)
 	}
+
 	// label
 	if label.RegAddLabel.MatchString(*commentEvent.Comment.Body) || label.RegRemoveLabel.MatchString(*commentEvent.Comment.Body) {
 		err = label.Handle(client, commentEvent)
@@ -68,7 +83,7 @@ func (s *Server) handleIssueCommentEvent(body []byte, client *github.Client, r r
 	}
 
 	// reviewers
-	if assign.CCRegExp.MatchString(*commentEvent.Comment.Body){
+	if assign.CCRegExp.MatchString(*commentEvent.Comment.Body) {
 		err = assign.ReviewerReqByComment(client, commentEvent)
 		if err != nil {
 			glog.Errorf("Failed to handle: %v", err)

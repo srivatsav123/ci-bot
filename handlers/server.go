@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -87,25 +86,28 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		glog.Errorf("Failed to parse webhook")
 		return
 	}
-	fmt.Fprint(w, "Received a webhook event")
-
 	var client http.Client
 	client.Do(r)
+
 	switch event.(type) {
-	case *github.IssueEvent:
-		go s.handleIssueEvent(payload)
-	case *github.IssueCommentEvent:
-		// Comments on PRs belong to IssueCommentEvent
-		IsIssueCommentHandling = true
-		go s.handleIssueCommentEvent(payload, s.GithubClient, s.Repository)
+	case *github.IssuesEvent:
+
+		glog.Info("New issues event created")
+		go s.handleIssue(payload)
+
+		/*	case *github.IssueCommentEvent:
+			// Comments on PRs belong to IssueCommentEvent
+			IsIssueCommentHandling = true
+			go s.handleIssueCommentEvent(payload, s.GithubClient, s.Repository)*/
 	case *github.PullRequestEvent:
 		if !IsIssueCommentHandling {
 			go s.handlePullRequestEvent(payload, ClientRepo)
 		}
 		//Fall Back to original state
 		IsIssueCommentHandling = false
-	case *github.PullRequestComment:
-		go s.handlePullRequestCommentEvent(payload)
+		/*	case *github.PullRequestComment:
+			go s.handlePullRequestCommentEvent(payload)
+		}*/
 	}
 }
 
@@ -154,7 +156,7 @@ func Run(s *WebHookServer) {
 		Context:      ctx,
 	}
 	//setting handler
-	http.HandleFunc("/hook", webHookHandler.ServeHTTP)
+	http.HandleFunc("/winnerbot", webHookHandler.ServeHTTP)
 
 	address := s.Address + ":" + strconv.FormatInt(s.Port, 10)
 	//starting server
