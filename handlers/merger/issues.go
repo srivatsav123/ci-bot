@@ -11,10 +11,13 @@ const (
 )
 
 type Merge struct {
-	Userid int64  `orm:"column(id);null type(int); pk"`
-	Name   string `orm:"column(name);null; type(text) "`
-	Email  string `orm:"column(email);null; type(text) "`
-	Count  int64  `orm:"column(count);null type(int)"`
+	ID      string `orm:"column(id);null; type(text); pk"`
+	Login   string `orm:"column(login);null; type(text)"`
+	Name    string `orm:"column(name);null; type(text) "`
+	Email   string `orm:"column(email);null; type(text) "`
+	Count   int64  `orm:"column(count);null type(int)"`
+	Repo    string `orm:"column(repo);null; type(text) "`
+	PullReq int    `orm:"column(pullreq);null type(int)"`
 }
 
 type Issue struct {
@@ -92,6 +95,5 @@ func validateDbIssue(author *Issue, prEvent *Issue) error {
 		glog.Info("Insert affected Num: %d", num)
 
 	}
-
 	return nil
 }
